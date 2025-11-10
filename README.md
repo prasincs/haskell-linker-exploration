@@ -15,6 +15,7 @@ A deep technical exploration into how Haskell programs are really built, why mod
 - [Running the Examples](#running-the-examples)
 - [Deep Dive Documentation](#deep-dive-documentation)
 - [Key Takeaways](#key-takeaways)
+- [Rust vs Haskell: Different Design Philosophies](#rust-vs-haskell-different-design-philosophies)
 
 ---
 
@@ -403,6 +404,124 @@ The Foreign Function Interface makes this crystal clear:
 - `hs_init()` and `hs_exit()` manually start/stop the RTS
 - You still use `ghc -no-hs-main` to link, even with a C `main()`
 - This is because GHC is the only tool that knows where all the Haskell "materials" are
+
+---
+
+## Rust vs Haskell: Different Design Philosophies
+
+### The Trade-off: Runtime vs Zero-Cost Abstractions
+
+This exploration reveals a fundamental design difference between Haskell and modern systems languages like Rust:
+
+| Aspect | Haskell | Rust |
+|--------|---------|------|
+| **Runtime** | Heavy (~5 MB RTS) | Minimal (~50 KB stdlib) |
+| **Garbage Collection** | Automatic GC | No GC (ownership system) |
+| **Lazy Evaluation** | Default | Eager (explicit lazy with `Lazy<T>`) |
+| **Concurrency** | Green threads (M:N) | OS threads (1:1) or async |
+| **Linking** | Requires GHC | Standard linker works |
+| **Binary Size** | 10+ MB ("Hello, World") | ~500 KB (static) |
+| **Startup Time** | ~50ms (RTS init) | <1ms |
+
+### Why Rust Can Use Standard Linkers
+
+```rust
+// Rust: No runtime needed
+fn main() {
+    println!("Hello, Rust!");
+}
+```
+
+**Compile and link**:
+```bash
+rustc hello.rs          # Creates hello.o
+ld -o hello hello.o -lc # Standard linker works!
+```
+
+**Why it works**:
+1. **No runtime system**: Rust has no GC, no scheduler, no heap manager
+2. **Standard calling convention**: Uses C ABI (System V on Linux)
+3. **Minimal dependencies**: Only needs libc and a few system libraries
+4. **Static dispatch**: Generics are monomorphized at compile time
+5. **Zero-cost abstractions**: High-level features compile to efficient machine code
+
+### Haskell's Academic Origins
+
+Haskell was designed as a **research language** to explore:
+- Pure functional programming
+- Lazy evaluation
+- Advanced type systems
+- Monadic effects
+
+**Design priorities**:
+1. ✅ **Expressiveness**: Make complex ideas simple to express
+2. ✅ **Correctness**: Strong type safety and purity
+3. ✅ **Research**: Test new programming language concepts
+4. ⚠️  **Performance**: Good, but not the primary goal
+5. ⚠️  **Deployment**: Not optimized for minimal binaries
+
+### Rust's Systems Programming Focus
+
+Rust was designed for **systems programming** where:
+- Every millisecond matters
+- Memory is precious
+- Predictability is critical
+- No runtime overhead is acceptable
+
+**Design priorities**:
+1. ✅ **Zero-cost abstractions**: High-level code, low-level performance
+2. ✅ **Memory safety**: Without garbage collection
+3. ✅ **Predictability**: No hidden costs (GC pauses, etc.)
+4. ✅ **Control**: Fine-grained control over resources
+5. ✅ **Deployment**: Small, fast, self-contained binaries
+
+### When Each Wins
+
+**Use Haskell when**:
+- Correctness is paramount (financial systems, compilers)
+- You need powerful abstractions (parser combinators, STM)
+- Development speed matters more than runtime speed
+- You're doing research or prototyping
+- Lazy evaluation naturally fits your problem domain
+
+**Use Rust when**:
+- Performance is critical (game engines, databases)
+- Memory usage must be minimal (embedded systems)
+- You need predictable performance (real-time systems)
+- Binary size matters (distributed applications)
+- You're building low-level infrastructure
+
+### The Verdict
+
+Neither language is "winning"—they serve different purposes:
+
+- **Rust** is winning in systems programming, embedded systems, and WebAssembly
+- **Haskell** is winning in academia, financial systems, and domain-specific languages
+
+**Haskell's runtime overhead is not a bug—it's a feature** that enables:
+- Automatic memory management
+- Lightweight concurrency (millions of threads)
+- Lazy evaluation (infinite data structures)
+- Powerful abstractions (lenses, monads, type-level programming)
+
+**Rust's lack of runtime is not a limitation—it's a design goal** that enables:
+- Predictable performance
+- Tiny binaries
+- Embedded systems support
+- No garbage collection pauses
+
+### The Irony
+
+Modern Rust async runtimes (Tokio, async-std) are **re-implementing parts of Haskell's RTS**:
+
+| Feature | Haskell RTS | Rust Async Runtime |
+|---------|-------------|-------------------|
+| Green threads | Built-in | `async`/`.await` |
+| Scheduler | Built-in | Tokio/async-std |
+| Work stealing | Built-in | Tokio work-stealing |
+| M:N threading | Default | Optional |
+
+The difference? Rust makes it **opt-in** (only if you `use tokio`), while Haskell makes it **built-in** (always present).
 
 ---
 
