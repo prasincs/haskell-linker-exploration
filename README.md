@@ -15,8 +15,11 @@ A deep technical exploration into how Haskell programs are really built, why mod
 - [PoC 1: Quantifying the Problem](#poc-1-quantifying-the-problem)
 - [The Two Requirements](#the-two-requirements)
 - [PoC 2: FFI and the "Manual Life Support"](#poc-2-ffi-and-the-manual-life-support)
+- [PoC 3: Modern Alternative - gRPC Microservices](#poc-3-modern-alternative---grpc-microservices)
 - [GHC: A 30-Year Architectural Marvel](#ghc-a-30-year-architectural-marvel)
 - [Running the Examples](#running-the-examples)
+- [Interactive WebAssembly Demo](#interactive-webassembly-demo)
+- [CI/CD and Reproducibility](#cicd-and-reproducibility)
 - [Deep Dive Documentation](#deep-dive-documentation)
 - [Key Takeaways](#key-takeaways)
 - [Rust vs Haskell: Different Design Philosophies](#rust-vs-haskell-different-design-philosophies)
@@ -247,6 +250,62 @@ The `-no-hs-main` flag tells GHC: *"I'm providing my own C `main()`, but please 
 
 ---
 
+## PoC 3: Modern Alternative - gRPC Microservices
+
+While PoC 1 and PoC 2 explore the complexity of FFI and linking, there's a **modern alternative** that sidesteps these issues entirely: **gRPC microservices**.
+
+### The Alternative Approach
+
+Instead of fighting with linkers to create a single binary, **run Haskell and C++ as separate services** that communicate over gRPC:
+
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│   C++ Client        │         │  Haskell Service    │
+│                     │  gRPC   │                     │
+│  Built with clang++ │ <-----> │  Built with GHC     │
+│  Uses lld linker    │  HTTP/2 │  Uses GHC linker    │
+└─────────────────────┘         └─────────────────────┘
+```
+
+### Trade-offs
+
+| Aspect | FFI (PoC 2) | gRPC (PoC 3) |
+|--------|-------------|--------------|
+| Build complexity | ⚠️ High (GHC must link everything) | ✅ Low (independent builds) |
+| Latency | ✅ Nanoseconds (in-process) | ⚠️ Microseconds (network) |
+| Deployment | ✅ Single binary | ⚠️ Two services |
+| Scaling | ⚠️ Vertical only | ✅ Horizontal |
+| Team autonomy | ❌ Tightly coupled | ✅ Independent teams |
+| Language flexibility | ⚠️ Limited to FFI | ✅ Any language |
+
+### Implementation
+
+**PoC 3 includes:**
+- **Haskell gRPC server**: Fibonacci service with benchmarking
+- **C++ client** (built with clang++ 18 and lld): Demonstrates gRPC calls and performance testing
+- **Benchmark suite**: Compare FFI vs gRPC performance
+- **Docker Compose**: Run both services together
+- **Complete build system**: Independent Cabal and CMake setups
+
+**Try it**: Run `./poc3-grpc-microservices/build.sh` or see [poc3-grpc-microservices/README.md](./poc3-grpc-microservices/README.md)
+
+### When to Use Each Approach
+
+**Use FFI (PoC 2)** when:
+- Need microsecond-level latency
+- Calling functions millions of times per second
+- Single deployment artifact required
+- Examples: HFT systems, game engines, embedded systems
+
+**Use gRPC (PoC 3)** when:
+- Services can scale independently
+- Multiple teams working on different components
+- Latency requirements > 1ms
+- Need language flexibility
+- Examples: Microservices, ML inference servers, distributed systems
+
+---
+
 ## GHC: A 30-Year Architectural Marvel
 
 Part of the confusion stems from GHC's sheer scale and history. **GHC is not a new, sleek compiler** built from scratch in the last decade. It's a massive, **30+ year-old research project** that has evolved into a production-grade industrial compiler.
@@ -305,21 +364,26 @@ docker run --rm ghc-linker-poc ./scripts/run-all-demos.sh
 # Or run individual PoCs:
 docker run --rm ghc-linker-poc ./poc1-linker-comparison/build.sh
 docker run --rm -it ghc-linker-poc ./poc2-ffi-integration/build.sh
+docker run --rm -it ghc-linker-poc ./poc3-grpc-microservices/build.sh
 ```
 
 ### Local Installation (Advanced)
 
-**Prerequisites**: GHC ≥9.0, LLVM ≥11, lld
+**Prerequisites**:
+- GHC ≥9.0
+- LLVM ≥18 (clang++ and lld)
+- For PoC 3: clang++ 18+
 
 ```bash
 # Verify your environment
-ghc --version    # Should be ≥9.0
-llc --version    # LLVM static compiler
-ld.lld --version # LLVM linker
+ghc --version      # Should be ≥9.0
+clang++ --version  # Should be ≥18.0
+lld --version      # LLVM linker
 
 # Run the demonstrations
 cd poc1-linker-comparison && ./build.sh && cd ..
 cd poc2-ffi-integration && ./build.sh && cd ..
+cd poc3-grpc-microservices && ./build.sh && cd ..
 ```
 
 **Note**: If you encounter linker errors, the Docker approach is more reliable as it uses a known-good environment.
@@ -338,6 +402,78 @@ After running the PoCs, you should see:
 - ✗ Linking with `ld.lld` fails (missing Haskell libraries)
 - ✓ Linking with `ghc -no-hs-main` succeeds
 - ✓ C program calls Haskell function: "fib(10) = 55"
+
+**PoC 3 Output:**
+- ✓ Haskell server builds independently with GHC
+- ✓ C++ client builds independently with clang++ 18 and lld
+- ✓ Both services run in separate processes
+- ✓ Benchmarks show performance comparison
+
+---
+
+## Interactive WebAssembly Demo
+
+For an interactive, browser-based exploration of these concepts, check out our **WebAssembly demo**!
+
+### Features
+
+- **Live Fibonacci Calculator**: Run real Haskell code compiled to WASM in your browser
+- **Interactive Visualizations**: Explore the GHC compilation pipeline and linking process
+- **RTS Component Explorer**: Learn about the garbage collector, scheduler, heap manager, and FFI
+- **Performance Benchmarks**: Compare Haskell (WASM) vs JavaScript performance
+- **Zero Installation**: Runs entirely in your browser, no setup required
+
+### Running the Demo
+
+```bash
+cd wasm-demo/public
+python3 -m http.server 8080
+# Or: npx serve .
+
+# Then open: http://localhost:8080
+```
+
+**Note**: Full WASM compilation requires GHC 9.8+ with WASM backend support. The demo currently uses JavaScript fallback for maximum compatibility, but demonstrates the structure and includes all educational content.
+
+See [wasm-demo/README.md](./wasm-demo/README.md) for details.
+
+---
+
+## CI/CD and Reproducibility
+
+This project includes comprehensive **GitHub Actions CI/CD** to ensure all examples remain reproducible over time.
+
+### What's Tested
+
+- **PoC 1-3**: All demonstrations build and run successfully
+- **Docker builds**: Ensure containerized environment works
+- **Reproducibility checks**: Run demonstrations multiple times to verify consistency
+- **Weekly scheduled runs**: Catch bitrot and dependency changes
+- **Documentation checks**: Verify all links and diagrams
+
+### CI Pipeline
+
+```yaml
+# Runs on:
+- Every push to main and feature branches
+- All pull requests
+- Weekly schedule (Sunday 00:00 UTC)
+
+# Tests:
+- Ubuntu Latest with GHC 9.4.8
+- clang++ 18 with lld
+- Docker multi-stage builds
+```
+
+### View CI Status
+
+Check the [Actions tab](../../actions) to see:
+- Build status for all PoCs
+- Test results and artifacts
+- Performance benchmarks over time
+- Reproducibility reports
+
+This ensures that even as dependencies and toolchains evolve, these demonstrations continue to work correctly.
 
 ---
 

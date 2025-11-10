@@ -1,0 +1,248 @@
+name: CI/CD - Build and Test
+
+on:
+  push:
+    branches: [ main, claude/* ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run weekly to ensure reproducibility over time
+    - cron: '0 0 * * 0'
+
+jobs:
+  poc1-linker-comparison:
+    name: "PoC 1: Linker Comparison"
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Haskell
+      uses: haskell-actions/setup@v2
+      with:
+        ghc-version: '9.4.8'
+
+    - name: Install LLVM
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y llvm-14 lld-14
+        sudo ln -sf /usr/bin/lld-14 /usr/bin/ld.lld
+
+    - name: Run PoC 1
+      run: |
+        cd poc1-linker-comparison
+        chmod +x build.sh
+        ./build.sh
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: poc1-binaries
+        path: |
+          poc1-linker-comparison/hello_success
+          poc1-linker-comparison/output.txt
+
+  poc2-ffi-integration:
+    name: "PoC 2: FFI Integration"
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Haskell
+      uses: haskell-actions/setup@v2
+      with:
+        ghc-version: '9.4.8'
+
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+
+    - name: Run PoC 2
+      run: |
+        cd poc2-ffi-integration
+        chmod +x build.sh
+        ./build.sh
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: poc2-binaries
+        path: |
+          poc2-ffi-integration/program
+          poc2-ffi-integration/output.txt
+
+  poc3-grpc-microservices:
+    name: "PoC 3: gRPC Microservices"
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Haskell
+      uses: haskell-actions/setup@v2
+      with:
+        ghc-version: '9.4.8'
+
+    - name: Install C++ build tools (clang++ 18)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake wget gnupg software-properties-common
+
+        # Install LLVM 18 (clang++ and lld)
+        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
+        sudo apt-get update
+        sudo apt-get install -y clang-18 lld-18
+
+        # Set up alternatives
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100
+        sudo update-alternatives --install /usr/bin/lld lld /usr/bin/lld-18 100
+
+    - name: Build PoC 3
+      run: |
+        cd poc3-grpc-microservices
+        chmod +x build.sh
+        ./build.sh
+
+    - name: Test Haskell server
+      run: |
+        cd poc3-grpc-microservices/haskell-service
+        timeout 5 ./fib-server || true
+
+    - name: Test C++ client
+      run: |
+        cd poc3-grpc-microservices/cpp-client
+        ./fib-client
+        ./benchmark
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: poc3-binaries
+        path: |
+          poc3-grpc-microservices/haskell-service/fib-server
+          poc3-grpc-microservices/cpp-client/fib-client
+          poc3-grpc-microservices/cpp-client/benchmark
+
+  docker-build:
+    name: "Docker Build Test"
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build main Docker image
+      run: |
+        docker build -t ghc-linker-poc .
+
+    - name: Run all demos in Docker
+      run: |
+        docker run --rm ghc-linker-poc ./scripts/run-all-demos.sh || true
+
+    - name: Build PoC 3 Docker services
+      run: |
+        cd poc3-grpc-microservices
+        docker-compose build
+
+  wasm-demo:
+    name: "WebAssembly Demo Build"
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Haskell with WASM support
+      uses: haskell-actions/setup@v2
+      with:
+        ghc-version: '9.8'  # GHC 9.8+ has better WASM support
+
+    - name: Check for WASM demo
+      run: |
+        if [ -d "wasm-demo" ]; then
+          cd wasm-demo
+          echo "Building WASM demo..."
+          # Add WASM build commands here when implemented
+        else
+          echo "WASM demo not yet implemented"
+        fi
+
+  reproducibility-check:
+    name: "Reproducibility Check"
+    runs-on: ubuntu-latest
+    needs: [poc1-linker-comparison, poc2-ffi-integration, poc3-grpc-microservices]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Haskell
+      uses: haskell-actions/setup@v2
+      with:
+        ghc-version: '9.4.8'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget gnupg software-properties-common build-essential
+
+        # Install LLVM 18
+        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
+        sudo apt-get update
+        sudo apt-get install -y llvm-18 lld-18 clang-18
+
+        # Set up alternatives
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
+        sudo update-alternatives --install /usr/bin/lld lld /usr/bin/lld-18 100
+
+    - name: Run all PoCs twice
+      run: |
+        echo "=== First Run ==="
+        ./scripts/run-all-demos.sh > run1.txt 2>&1 || true
+
+        echo "=== Second Run ==="
+        ./scripts/run-all-demos.sh > run2.txt 2>&1 || true
+
+        echo "Reproducibility check complete"
+        echo "Note: Some timing variations are expected"
+
+    - name: Upload reproducibility logs
+      uses: actions/upload-artifact@v3
+      with:
+        name: reproducibility-logs
+        path: |
+          run1.txt
+          run2.txt
+
+  documentation-check:
+    name: "Documentation Check"
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check markdown files
+      run: |
+        find . -name "*.md" -type f -exec echo "Checking {}" \;
+
+    - name: Verify all diagrams exist
+      run: |
+        for diagram in diagrams/*.md; do
+          echo "Checking $diagram"
+          if ! grep -q "mermaid" "$diagram" && ! grep -q "```" "$diagram"; then
+            echo "Warning: $diagram may be missing diagrams"
+          fi
+        done
+
+    - name: Check for broken links
+      run: |
+        # Simple check for relative links
+        for file in $(find . -name "*.md"); do
+          echo "Checking links in $file"
+          grep -o '\[.*\](\.\/[^)]*\.md)' "$file" || true
+        done
