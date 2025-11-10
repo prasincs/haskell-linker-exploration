@@ -35,18 +35,19 @@ else
 fi
 
 echo ""
-echo "Trying with lld directly..."
+echo "Trying with ld.lld directly..."
 # We add -lc, -lpthread, etc., which a driver would normally do.
 # This will also fail, missing all the Haskell symbols.
-lld -o my_program_fail main.o MyLib.o -lpthread -ldl -lc 2> lld_errors.txt || true
+# Note: On Linux, we use ld.lld (not just 'lld' which is a generic driver)
+ld.lld -o my_program_fail main.o MyLib.o -lpthread -ldl -lc 2> lld_errors.txt || true
 
 if [ -s lld_errors.txt ]; then
-    echo "FAILED (with lld), as expected. Errors:"
+    echo "FAILED (with ld.lld), as expected. Errors:"
     cat lld_errors.txt | grep "undefined reference" | head -n 5
     echo "[... and many more]"
     rm lld_errors.txt
 else
-    echo "Link with lld succeeded unexpectedly. Check your environment."
+    echo "Link with ld.lld succeeded unexpectedly. Check your environment."
 fi
 
 

@@ -18,13 +18,14 @@ echo ""
 
 # --- 3. PoC Attempt 1: Linking with 'lld' (The Naive Way) ---
 echo "--- Attempt 1: Linking with lld (The Wrong Way) ---"
-echo "Running: lld -o hello_fail Hello.o -lc -lm -lpthread -ldl"
+echo "Running: ld.lld -o hello_fail Hello.o -lc -lm -lpthread -ldl"
 echo "This will fail with 'undefined reference' errors..."
 echo ""
 
 # We use '|| true' to let the script continue even after lld fails.
 # We add common C libs to be "fair" to lld.
-lld -o hello_fail Hello.o -lc -lm -lpthread -ldl 2> lld_errors.log || true
+# Note: On Linux, we use ld.lld (not just 'lld' which is a generic driver)
+ld.lld -o hello_fail Hello.o -lc -lm -lpthread -ldl 2> lld_errors.log || true
 
 if [ -s lld_errors.log ]; then
     echo "FAILED, as expected. lld errors:"
