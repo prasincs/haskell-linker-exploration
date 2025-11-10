@@ -4,6 +4,8 @@ A deep technical exploration into how Haskell programs are really built, why mod
 
 > **TL;DR**: Even if Haskell compiles to standard object files, you can't link them with `lld` or `ld` directly. GHC must orchestrate linking because it needs to add: (1) the ~5MB Haskell Runtime System (GC, scheduler, lazy evaluation), (2) 10+ boot libraries with complex dependencies, and (3) proper calling conventions for closures and info tables. This repository proves it with runnable examples and explains why with comprehensive documentation.
 
+> **Methodology Note**: This repository combines original research and working code by Prasanna with AI-assisted documentation. All technical claims are verified against official sources. See [METHODOLOGY.md](./METHODOLOGY.md) for full transparency.
+
 ---
 
 ## Table of Contents
@@ -580,10 +582,16 @@ This repository is released under the MIT License. See [LICENSE](./LICENSE) for 
 
 ## Acknowledgments
 
-Thanks to:
+**Primary Author:** Prasanna - Research, code development, technical insights, verification
+
+**AI Assistance:** Claude (Anthropic) - Documentation structure, diagram generation, expansion of explanations. All technical claims verified against official sources.
+
+**Thanks to:**
 - The GHC team for 30+ years of incredible work
 - Dmitrii Kovanikov and others who helped clarify these concepts
-- The Haskell community for their patience with my questions
+- The Haskell community for knowledge sharing
+
+See [METHODOLOGY.md](./METHODOLOGY.md) for details on how this repository was created.
 
 ---
 
