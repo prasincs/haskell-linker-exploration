@@ -2,6 +2,8 @@
 
 A deep technical exploration into how Haskell programs are really built, why modern linkers like lld can't link Haskell code on their own, and what makes GHC an indispensable "general contractor" for your Haskell applications.
 
+> **TL;DR**: Even if Haskell compiles to standard object files, you can't link them with `lld` or `ld` directly. GHC must orchestrate linking because it needs to add: (1) the ~5MB Haskell Runtime System (GC, scheduler, lazy evaluation), (2) 10+ boot libraries with complex dependencies, and (3) proper calling conventions for closures and info tables. This repository proves it with runnable examples and explains why with comprehensive documentation.
+
 ---
 
 ## Table of Contents
@@ -53,7 +55,7 @@ Instead of just talking about it, let's **measure** it. I created a simple proof
 
 ### The Setup
 
-1. **Simple Haskell program** ([Hello.hs](./Hello.hs)):
+1. **Simple Haskell program**:
    ```haskell
    main :: IO ()
    main = putStrLn "Hello, Haskell!"
@@ -66,7 +68,7 @@ Instead of just talking about it, let's **measure** it. I created a simple proof
 
 3. **Attempt 1 (Naive)**: Try linking with lld directly
    ```bash
-   lld -o hello_fail Hello.o -lc -lpthread -ldl
+   ld.lld -o hello_fail Hello.o -lc -lpthread -ldl
    ```
 
 ### The Result: Spectacular Failure
@@ -112,7 +114,7 @@ Here's what GHC is actually linking (abbreviated):
   -lgmp -ldl -lpthread -lm -lc                               # System libraries
 ```
 
-**See it for yourself**: [poc1-linker-comparison/](./poc1-linker-comparison/)
+**Try it**: Run `./poc1-linker-comparison/build.sh` or see [poc1-linker-comparison/README.md](./poc1-linker-comparison/README.md)
 
 ---
 
@@ -239,7 +241,7 @@ And you **still use GHC as the linker** because:
 
 The `-no-hs-main` flag tells GHC: *"I'm providing my own C `main()`, but please find all the Haskell materials and link them correctly."*
 
-**See it for yourself**: [poc2-ffi-integration/](./poc2-ffi-integration/)
+**Try it**: Run `./poc2-ffi-integration/build.sh` or see [poc2-ffi-integration/README.md](./poc2-ffi-integration/README.md)
 
 ---
 
@@ -287,50 +289,53 @@ For more details, see [docs/ghc-architecture.md](./docs/ghc-architecture.md)
 
 ## Running the Examples
 
-### Quick Start with Docker (No GHC Installation Required)
+### Quick Start with Docker (Recommended)
+
+**No GHC installation required!** The Docker image includes GHC 9.4.8, LLVM, lld, and all dependencies.
 
 ```bash
-# 1. Clone this repository
-git clone https://github.com/yourusername/haskell-linker-exploration.git
-cd haskell-linker-exploration
-
-# 2. Build the Docker image (takes a few minutes)
+# Build the image (one-time, ~5 minutes)
 docker build -t ghc-linker-poc .
 
-# 3. Run PoC 1: Linker Command Comparison
-docker run --rm ghc-linker-poc ./poc1-linker-comparison/build.sh
-
-# 4. Run PoC 2: FFI Integration (interactive)
-docker run --rm -it ghc-linker-poc ./poc2-ffi-integration/build.sh
-
-# 5. Or run all demos
+# Run all demonstrations
 docker run --rm ghc-linker-poc ./scripts/run-all-demos.sh
+
+# Or run individual PoCs:
+docker run --rm ghc-linker-poc ./poc1-linker-comparison/build.sh
+docker run --rm -it ghc-linker-poc ./poc2-ffi-integration/build.sh
 ```
 
-### With Docker Compose
+### Local Installation (Advanced)
+
+**Prerequisites**: GHC ≥9.0, LLVM ≥11, lld
 
 ```bash
-# Run specific PoC
-docker-compose run poc1
-docker-compose run poc2
+# Verify your environment
+ghc --version    # Should be ≥9.0
+llc --version    # LLVM static compiler
+ld.lld --version # LLVM linker
 
-# Run all
-docker-compose run all-demos
+# Run the demonstrations
+cd poc1-linker-comparison && ./build.sh && cd ..
+cd poc2-ffi-integration && ./build.sh && cd ..
 ```
 
-### Local Installation
+**Note**: If you encounter linker errors, the Docker approach is more reliable as it uses a known-good environment.
 
-If you have GHC (≥9.0), LLVM, and lld installed:
+### Verifying Reproducibility
 
-```bash
-# PoC 1
-cd poc1-linker-comparison
-./build.sh
+After running the PoCs, you should see:
 
-# PoC 2
-cd poc2-ffi-integration
-./build.sh
-```
+**PoC 1 Output:**
+- ✗ Naive `ld.lld` linking fails with 100+ undefined references
+- ✓ GHC linking succeeds with 140+ arguments
+- ✓ Executable runs and prints "Hello, Haskell!"
+
+**PoC 2 Output:**
+- ✗ Linking with `cc` fails (missing RTS symbols)
+- ✗ Linking with `ld.lld` fails (missing Haskell libraries)
+- ✓ Linking with `ghc -no-hs-main` succeeds
+- ✓ C program calls Haskell function: "fib(10) = 55"
 
 ---
 
@@ -525,11 +530,25 @@ The difference? Rust makes it **opt-in** (only if you `use tokio`), while Haskel
 
 ---
 
+## Related Work and Resources
+
+### Similar Educational Projects
+- [GHC Commentary](https://gitlab.haskell.org/ghc/ghc/-/wikis/commentary) - Official GHC internals documentation
+- [The Architecture of Open Source Applications: GHC](https://aosabook.org/en/v2/ghc.html) - High-level GHC architecture overview
+- [STGi](https://hackage.haskell.org/package/stgi) - Educational STG interpreter by David Luposchainsky
+- [Write You a Haskell](http://dev.stephendiehl.com/fun/) - Stephen Diehl's tutorial on building a Haskell compiler
+
+### Community Discussions
+- [Why can't I link Haskell objects with ld?](https://stackoverflow.com/questions/tagged/ghc+linker) - Stack Overflow discussions
+- [Haskell Cafe mailing list](https://mail.haskell.org/mailman/listinfo/haskell-cafe) - Active community discussions
+
 ## Contributing
 
 Found an error? Have a suggestion? **Pull requests and issues welcome!**
 
 This repository is meant to be an educational resource. If you have ideas for additional PoCs, better explanations, or more visualizations, please contribute.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ---
 
@@ -541,9 +560,10 @@ This repository is meant to be an educational resource. If you have ideas for ad
 - [The Architecture of Open Source Applications: GHC](https://aosabook.org/en/v2/ghc.html)
 
 ### Academic Papers
-- [The Spineless Tagless G-machine](https://www.microsoft.com/en-us/research/wp-content/uploads/1992/04/spineless-tagless-gmachine.pdf) (Simon Peyton Jones, 1992)
-- [A History of Haskell: Being Lazy With Class](https://www.microsoft.com/en-us/research/publication/a-history-of-haskell-being-lazy-with-class/) (2007)
-- [Implementing Lazy Functional Languages on Stock Hardware](https://www.microsoft.com/en-us/research/publication/implementing-lazy-functional-languages-on-stock-hardware-the-spineless-tagless-g-machine/) (1992)
+- [Implementing Lazy Functional Languages on Stock Hardware: The Spineless Tagless G-machine](https://www.microsoft.com/en-us/research/wp-content/uploads/1992/04/spineless-tagless-gmachine.pdf) - Simon Peyton Jones, *Journal of Functional Programming* 2(2):127-202, 1992
+- [A History of Haskell: Being Lazy With Class](https://www.microsoft.com/en-us/research/publication/a-history-of-haskell-being-lazy-with-class/) - Hudak et al., 2007
+- [Runtime Support for Multicore Haskell](https://www.microsoft.com/en-us/research/publication/runtime-support-for-multicore-haskell/) - Harris et al., 2009
+- [Parallel Generational-Copying Garbage Collection with a Block-Structured Heap](https://www.microsoft.com/en-us/research/publication/parallel-generational-copying-garbage-collection-with-a-block-structured-heap/) - Marlow & Peyton Jones, 2008
 
 ### Related Projects
 - [LLVM](https://llvm.org/) - The optional backend GHC can use
@@ -567,8 +587,6 @@ Thanks to:
 
 ---
 
-**Author**: Prasanna
-**Repository**: https://github.com/yourusername/haskell-linker-exploration
-**Blog Post Date**: 2025
+**Repository**: [github.com/prasincs/haskell-linker-exploration](https://github.com/prasincs/haskell-linker-exploration)
 
-If you found this useful, please star the repository and share it with others learning about compilers and linkers!
+If you found this useful, please ⭐ star the repository!
