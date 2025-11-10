@@ -1,0 +1,113 @@
+# Haskell build artifacts
+*.hi
+*.o
+*.a
+*.so
+*.dylib
+*.dyn_hi
+*.dyn_o
+*_stub.h
+*.prof
+*.aux
+*.hp
+*.eventlog
+.HTF/
+
+# Cabal
+dist/
+dist-*/
+cabal-dev
+*.cabal.sandbox.config
+*.cabal.sandbox/
+.stack-work/
+stack.yaml.lock
+
+# GHC
+.ghc.environment.*
+*.ghc.*.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Executables
+hello_success
+hello_fail
+my_program_success
+my_program_fail
+fib-server
+fib-client
+
+# PoC-specific
+poc1-linker-comparison/Hello.hs
+poc1-linker-comparison/Hello.o
+poc1-linker-comparison/ghc_verbose.log
+poc1-linker-comparison/lld_errors.log
+poc2-ffi-integration/*.o
+poc2-ffi-integration/*.hi
+poc2-ffi-integration/*_stub.h
+poc2-ffi-integration/clang_errors.txt
+poc2-ffi-integration/lld_errors.txt
+
+# gRPC generated files
+*.pb.h
+*.pb.cc
+*.grpc.pb.h
+*.grpc.pb.cc
+*.pb.go
+*_pb2.py
+*_pb2_grpc.py
+
+# CMake
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Docker
+.dockerignore
+
+# Output directory
+output/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.#*
+\#*\#
+
+# Documentation builds
+docs/_build/
+docs/.doctrees/
+
+# Python (if used for tooling)
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+
+# Rust (if used for comparison)
+target/
+Cargo.lock
+
+# Node (if used for tooling)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Test artifacts
+*.test
+test-output/
+.coverage
+htmlcov/
+
+.claude

@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # Base service with all PoC code
+  base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghc-linker-poc:latest
+    volumes:
+      - ./output:/poc/output
+    networks:
+      - ghc-network
+
+  # PoC 1: Linker Command Comparison
+  poc1:
+    extends: base
+    container_name: ghc-poc1-linker-comparison
+    command: ./poc1-linker-comparison/build.sh
+    profiles:
+      - poc1
+      - all
+
+  # PoC 2: FFI Integration
+  poc2:
+    extends: base
+    container_name: ghc-poc2-ffi-integration
+    command: bash -c "echo '' | ./poc2-ffi-integration/build.sh"
+    stdin_open: true
+    tty: true
+    profiles:
+      - poc2
+      - all
+
+  # PoC 3: Haskell gRPC Server (for future implementation)
+  haskell-grpc-server:
+    extends: base
+    container_name: ghc-poc3-haskell-server
+    working_dir: /poc/poc3-grpc-microservices/haskell-service
+    command: echo "gRPC server placeholder - see poc3-grpc-microservices/README.md"
+    ports:
+      - "50051:50051"
+    networks:
+      - ghc-network
+    profiles:
+      - poc3
+      - grpc
+
+  # PoC 3: C++ gRPC Client (for future implementation)
+  cpp-grpc-client:
+    extends: base
+    container_name: ghc-poc3-cpp-client
+    working_dir: /poc/poc3-grpc-microservices/cpp-client
+    command: echo "gRPC client placeholder - see poc3-grpc-microservices/README.md"
+    depends_on:
+      - haskell-grpc-server
+    networks:
+      - ghc-network
+    profiles:
+      - poc3
+      - grpc
+
+  # Run all demos sequentially
+  all-demos:
+    extends: base
+    container_name: ghc-all-demos
+    command: ./scripts/run-all-demos.sh
+    stdin_open: true
+    tty: true
+    profiles:
+      - demo
+      - all
+
+  # Interactive shell for exploration
+  shell:
+    extends: base
+    container_name: ghc-interactive-shell
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    profiles:
+      - shell
+
+networks:
+  ghc-network:
+    driver: bridge
+
+# Usage:
+#
+# Build the image:
+#   docker-compose build
+#
+# Run all demos:
+#   docker-compose --profile demo run all-demos
+#
+# Run specific PoC:
+#   docker-compose --profile poc1 run poc1
+#   docker-compose --profile poc2 run poc2
+#
+# Interactive shell:
+#   docker-compose --profile shell run shell
+#
+# Run gRPC demo (when implemented):
+#   docker-compose --profile grpc up
+#
+# Clean up:
+#   docker-compose down
+#   docker-compose down --volumes  # Also remove volumes
