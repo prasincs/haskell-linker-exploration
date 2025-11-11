@@ -19,7 +19,10 @@ for candidate in \
     "$GHC_LIBDIR/include" \
     "${GHC_LIBDIR%/lib}/include" \
     "$GHC_LIBDIR/../include" \
+    "$GHC_LIBDIR/rts/include" \
+    "${GHC_LIBDIR%/lib}/rts/include" \
     "$(dirname $(dirname $(which ghc)))/lib/ghc-$(ghc --numeric-version)/include" \
+    "$(dirname $GHC_LIBDIR)/include" \
     ; do
     if [ -f "$candidate/HsFFI.h" ]; then
         GHC_INCLUDE="$candidate"
@@ -27,12 +30,25 @@ for candidate in \
     fi
 done
 
+# If still not found, use find as last resort
+if [ -z "$GHC_INCLUDE" ]; then
+    echo "Standard locations failed, searching with find..."
+    GHC_BASE=$(dirname "$GHC_LIBDIR")
+    FOUND=$(find "$GHC_BASE" -name "HsFFI.h" 2>/dev/null | head -1)
+    if [ -n "$FOUND" ]; then
+        GHC_INCLUDE=$(dirname "$FOUND")
+        echo "Found via search: $GHC_INCLUDE"
+    fi
+fi
+
 if [ -z "$GHC_INCLUDE" ]; then
     echo "Error: Could not find HsFFI.h"
     echo "Searched in:"
     echo "  - $GHC_LIBDIR/include"
     echo "  - ${GHC_LIBDIR%/lib}/include"
     echo "  - $GHC_LIBDIR/../include"
+    echo "  - $GHC_LIBDIR/rts/include"
+    echo "  - And used find in $(dirname $GHC_LIBDIR)"
     exit 1
 fi
 
