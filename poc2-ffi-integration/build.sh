@@ -10,7 +10,10 @@ echo ""
 echo "--- Building C Main Program (main.c) ---"
 # 2. Compile the C code into an object file using cc.
 #    We need to tell the compiler where to find GHC's header files (HsFFI.h, etc.)
-GHC_INCLUDE=$(ghc --print-libdir)/include
+GHC_LIBDIR=$(ghc --print-libdir)
+# For GHCup installations, remove trailing /lib if present
+GHC_LIBDIR=${GHC_LIBDIR%/lib}
+GHC_INCLUDE="$GHC_LIBDIR/include"
 echo "Using GHC include directory: $GHC_INCLUDE"
 cc -c main.c -I. -I"$GHC_INCLUDE"
 
