@@ -2,9 +2,24 @@
 
 A deep technical exploration into how Haskell programs are really built, why modern linkers like lld can't link Haskell code on their own, and what makes GHC an indispensable "general contractor" for your Haskell applications.
 
+> **📖 [Read the full book online →](https://prasincs.github.io/haskell-linker-exploration/)**
+
 > **TL;DR**: Even if Haskell compiles to standard object files, you can't link them with `lld` or `ld` directly. GHC must orchestrate linking because it needs to add: (1) the ~5MB Haskell Runtime System (GC, scheduler, lazy evaluation), (2) 10+ boot libraries with complex dependencies, and (3) proper calling conventions for closures and info tables. This repository proves it with runnable examples and explains why with comprehensive documentation.
 
 > **Methodology Note**: This repository combines original research and working code by Prasanna with AI-assisted documentation. All technical claims are verified against official sources. See [METHODOLOGY.md](./METHODOLOGY.md) for full transparency.
+
+---
+
+## 🎯 New: Interactive Book Format!
+
+This repository now includes a **comprehensive mdBook** with:
+- ✅ **Progressive learning path** from basics to advanced concepts
+- ✅ **Interactive navigation** with search and cross-references
+- ✅ **Working code examples** you can run
+- ✅ **Deep dive chapters** on GHC, RTS, and FFI
+- ✅ **Production guides** for real-world use
+
+**[Start reading the book →](https://prasincs.github.io/haskell-linker-exploration/)**
 
 ---
 
