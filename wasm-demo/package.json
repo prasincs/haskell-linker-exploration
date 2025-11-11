@@ -1,0 +1,23 @@
+{
+  "name": "haskell-linker-explorer-wasm",
+  "version": "1.0.0",
+  "description": "Interactive WebAssembly demonstration of Haskell linking concepts",
+  "scripts": {
+    "serve": "npx serve public",
+    "dev": "npx serve public --listen 8080",
+    "build": "./build.sh"
+  },
+  "keywords": [
+    "haskell",
+    "wasm",
+    "webassembly",
+    "ghc",
+    "linker",
+    "educational"
+  ],
+  "author": "Prasanna",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}

@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  haskell-server:
+    build:
+      context: ./haskell-service
+      dockerfile: Dockerfile
+    container_name: fib-server
+    ports:
+      - "50051:50051"
+    networks:
+      - grpc-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "50051"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  cpp-client:
+    build:
+      context: ./cpp-client
+      dockerfile: Dockerfile
+    container_name: fib-client
+    depends_on:
+      haskell-server:
+        condition: service_healthy
+    networks:
+      - grpc-network
+    environment:
+      - SERVER_ADDRESS=haskell-server:50051
+    command: ["./fib-client"]
+
+networks:
+  grpc-network:
+    driver: bridge

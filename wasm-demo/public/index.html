@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haskell Linker Explorer - Interactive Demo</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>🔗 Haskell Linker Explorer</h1>
+        <p>Interactive WebAssembly demonstration of Haskell compilation and linking</p>
+    </header>
+
+    <main>
+        <section class="intro">
+            <h2>Welcome to the Interactive Demo!</h2>
+            <p>
+                This demo runs <strong>real Haskell code</strong> compiled to WebAssembly,
+                right in your browser. No server required!
+            </p>
+            <div class="status" id="wasm-status">
+                <span class="loading">Loading WebAssembly...</span>
+            </div>
+        </section>
+
+        <section class="demo-section">
+            <h2>1. Fibonacci Calculator</h2>
+            <p>Enter a number to calculate its Fibonacci value using Haskell running in WASM:</p>
+
+            <div class="calculator">
+                <div class="input-group">
+                    <label for="fib-input">Calculate Fibonacci of:</label>
+                    <input type="number" id="fib-input" value="20" min="0" max="40" />
+                    <button id="calc-button">Calculate</button>
+                </div>
+
+                <div class="results">
+                    <div class="result-box">
+                        <h3>Haskell (WASM)</h3>
+                        <div id="haskell-result" class="result-value">-</div>
+                        <div id="haskell-time" class="result-time">-</div>
+                    </div>
+
+                    <div class="result-box">
+                        <h3>JavaScript</h3>
+                        <div id="js-result" class="result-value">-</div>
+                        <div id="js-time" class="result-time">-</div>
+                    </div>
+                </div>
+
+                <div class="comparison" id="comparison" style="display: none;">
+                    <strong>Performance:</strong> <span id="comparison-text"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="demo-section">
+            <h2>2. Linker Visualization</h2>
+            <p>See how GHC orchestrates the linking process:</p>
+
+            <div class="visualization">
+                <div class="diagram" id="linker-diagram">
+                    <div class="stage">
+                        <h3>Source Code</h3>
+                        <div class="code-box">
+                            <code>main = putStrLn "Hello"</code>
+                        </div>
+                        <div class="arrow">↓</div>
+                    </div>
+
+                    <div class="stage">
+                        <h3>GHC Compilation</h3>
+                        <div class="compile-steps">
+                            <div class="step">Parse & Typecheck</div>
+                            <div class="step">Core IR</div>
+                            <div class="step">STG</div>
+                            <div class="step">Code Gen</div>
+                        </div>
+                        <div class="arrow">↓</div>
+                    </div>
+
+                    <div class="stage">
+                        <h3>Object Files</h3>
+                        <div class="files">
+                            <span class="file">Hello.o</span>
+                        </div>
+                        <div class="arrow">↓</div>
+                    </div>
+
+                    <div class="split-stage">
+                        <div class="path naive-path">
+                            <h4>❌ Naive Linker</h4>
+                            <div class="command">ld Hello.o -o hello</div>
+                            <div class="error">
+                                Error: Undefined references<br/>
+                                <small>
+                                    - Missing RTS<br/>
+                                    - Missing base library<br/>
+                                    - Missing primitives
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="path ghc-path">
+                            <h4>✅ GHC as Linker</h4>
+                            <div class="command">ghc Hello.o -o hello</div>
+                            <div class="dependencies">
+                                + Runtime System (RTS)<br/>
+                                + base library<br/>
+                                + ghc-prim<br/>
+                                + integer-gmp<br/>
+                                <small>+ 10+ more libraries...</small>
+                            </div>
+                            <div class="success">✓ Executable created!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="demo-section">
+            <h2>3. Runtime System Explorer</h2>
+            <p>Click on each component to learn more:</p>
+
+            <div class="rts-explorer">
+                <div class="rts-component" data-component="gc">
+                    <h3>Garbage Collector</h3>
+                    <p>Automatic memory management</p>
+                </div>
+
+                <div class="rts-component" data-component="scheduler">
+                    <h3>Scheduler</h3>
+                    <p>Manages lightweight threads</p>
+                </div>
+
+                <div class="rts-component" data-component="heap">
+                    <h3>Heap Manager</h3>
+                    <p>Lazy evaluation & thunks</p>
+                </div>
+
+                <div class="rts-component" data-component="ffi">
+                    <h3>FFI Bridge</h3>
+                    <p>Interop with C/JavaScript</p>
+                </div>
+            </div>
+
+            <div class="rts-details" id="rts-details" style="display: none;">
+                <h3 id="detail-title"></h3>
+                <div id="detail-content"></div>
+            </div>
+        </section>
+
+        <section class="demo-section">
+            <h2>4. Benchmark Suite</h2>
+            <p>Compare performance across different approaches:</p>
+
+            <div class="benchmark-controls">
+                <button id="run-benchmark">Run Benchmark</button>
+                <div id="benchmark-progress" class="progress-bar" style="display: none;">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+
+            <div class="benchmark-results" id="benchmark-results" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Test</th>
+                            <th>Haskell (WASM)</th>
+                            <th>JavaScript</th>
+                            <th>Speedup</th>
+                        </tr>
+                    </thead>
+                    <tbody id="benchmark-table">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="demo-section info">
+            <h2>About This Demo</h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>Technology</h3>
+                    <ul>
+                        <li>GHC 9.8+ WASM Backend</li>
+                        <li>WebAssembly 1.0</li>
+                        <li>Vanilla JavaScript</li>
+                        <li>No frameworks required</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3>What's Running</h3>
+                    <ul>
+                        <li>Real Haskell code in your browser</li>
+                        <li>Haskell RTS (subset)</li>
+                        <li>Pure functional algorithms</li>
+                        <li>Zero server calls</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3>Learn More</h3>
+                    <ul>
+                        <li><a href="https://github.com/prasincs/haskell-linker-exploration">GitHub Repository</a></li>
+                        <li><a href="../README.md">Main Documentation</a></li>
+                        <li><a href="../docs/ghc-architecture.md">GHC Architecture</a></li>
+                        <li><a href="../docs/rts-explained.md">RTS Deep Dive</a></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>
+            Part of the <strong>Haskell Linker Exploration</strong> project |
+            <a href="https://github.com/prasincs/haskell-linker-exploration">View on GitHub</a>
+        </p>
+    </footer>
+
+    <script src="js/app.js" type="module"></script>
+</body>
+</html>

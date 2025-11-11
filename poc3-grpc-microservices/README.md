@@ -275,18 +275,21 @@ cabal build
 
 **C++ Client:**
 ```bash
-# Build with CMake (native C++ tooling)
+# Build with CMake and clang (native C++ tooling)
 cd cpp-client
 mkdir build && cd build
-cmake ..
+cmake -DCMAKE_CXX_COMPILER=clang++ ..
 make
 ./fib-client
+
+# Or build directly with clang
+clang++ -std=c++17 -O2 -fuse-ld=lld client.cpp -o fib-client -pthread
 ```
 
 **Completely independent!**
 - Each uses its native build system
 - No cross-language build dependencies
-- Can use different compilers, flags, optimizations
+- Can use different compilers (GHC vs clang), flags, optimizations
 - Easy CI/CD: build in separate pipelines
 
 ## Deployment Comparison

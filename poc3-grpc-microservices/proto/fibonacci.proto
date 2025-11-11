@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package fibonacci;
+
+service FibonacciService {
+  // Calculate single Fibonacci number
+  rpc Calculate (FibRequest) returns (FibResponse);
+
+  // Calculate batch of Fibonacci numbers (for benchmarking)
+  rpc CalculateBatch (BatchRequest) returns (BatchResponse);
+}
+
+message FibRequest {
+  int32 n = 1;
+}
+
+message FibResponse {
+  int32 n = 1;
+  int64 result = 2;
+  double computation_time_ms = 3;
+}
+
+message BatchRequest {
+  repeated int32 numbers = 1;
+}
+
+message BatchResponse {
+  repeated FibResponse results = 1;
+  double total_time_ms = 2;
+}
