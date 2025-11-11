@@ -13,18 +13,30 @@ echo "--- Building C Main Program (main.c) ---"
 GHC_LIBDIR=$(ghc --print-libdir)
 echo "GHC libdir: $GHC_LIBDIR"
 
-# Try multiple possible locations for the include directory
-if [ -d "$GHC_LIBDIR/include" ]; then
-    GHC_INCLUDE="$GHC_LIBDIR/include"
-elif [ -d "${GHC_LIBDIR%/lib}/include" ]; then
-    # For GHCup, strip trailing /lib
-    GHC_INCLUDE="${GHC_LIBDIR%/lib}/include"
-else
-    # Fallback to standard location
-    GHC_INCLUDE="$GHC_LIBDIR/../include"
+# Try to find HsFFI.h by searching common locations
+GHC_INCLUDE=""
+for candidate in \
+    "$GHC_LIBDIR/include" \
+    "${GHC_LIBDIR%/lib}/include" \
+    "$GHC_LIBDIR/../include" \
+    "$(dirname $(dirname $(which ghc)))/lib/ghc-$(ghc --numeric-version)/include" \
+    ; do
+    if [ -f "$candidate/HsFFI.h" ]; then
+        GHC_INCLUDE="$candidate"
+        break
+    fi
+done
+
+if [ -z "$GHC_INCLUDE" ]; then
+    echo "Error: Could not find HsFFI.h"
+    echo "Searched in:"
+    echo "  - $GHC_LIBDIR/include"
+    echo "  - ${GHC_LIBDIR%/lib}/include"
+    echo "  - $GHC_LIBDIR/../include"
+    exit 1
 fi
 
-echo "Using GHC include directory: $GHC_INCLUDE"
+echo "Found HsFFI.h in: $GHC_INCLUDE"
 cc -c main.c -I. -I"$GHC_INCLUDE"
 
 echo ""
