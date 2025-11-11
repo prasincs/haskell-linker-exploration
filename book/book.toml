@@ -24,7 +24,6 @@ cname = ""
 additional-css = []
 additional-js = []
 no-section-label = false
-fold = { enable = false, level = 0 }
 playground = { editable = true, copyable = true, line-numbers = true }
 
 [output.html.print]
