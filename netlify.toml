@@ -1,0 +1,33 @@
+[build]
+  # Directory where the book is located
+  base = "book/"
+
+  # Build command - install mdbook and build
+  command = """
+    curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz && \
+    chmod +x mdbook && \
+    ./mdbook build
+  """
+
+  # Directory to publish (mdBook outputs to book/ subdirectory by default)
+  publish = "book/"
+
+# Branch deploy configuration
+[context.production]
+  # Production deploys from main branch
+  publish = "book/"
+
+[context.deploy-preview]
+  # Preview deploys for PRs
+  publish = "book/"
+
+[context.branch-deploy]
+  # Branch deploys (including claude/* branches)
+  publish = "book/"
+
+# Redirect rules (optional)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
